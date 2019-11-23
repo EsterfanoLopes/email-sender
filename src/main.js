@@ -37,9 +37,9 @@ const trigger_sending = (env) => {
   const emailbody = template.generate(env.first).toString();
 
   transporter.sendMail({
-    from: 'Devin from At The Door <devin@atthedoor.app>',
+    from: 'E-mail sender <email@sender.com>',
     to: env,
-    subject: 'Events and first impressions At The Door ',
+    subject: 'Subjects of the e-mail',
     text: '##Plaintext version of the message##',
     html: emailbody,
   }, (error, info) => {
