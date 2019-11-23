@@ -3,7 +3,10 @@ const template = require('./templates/template.js');
 const csv = require('csvtojson/v1');
 const schedule = require('node-schedule');
 
-const { testfile, prodfile } = require('./util/csv-util');
+const testfile = './resources/test_list.csv';
+//my test list
+const prodfile = './resources/list.csv';
+//path to our production list
 
 const {
   userEmail,
@@ -28,16 +31,17 @@ const transporter = nodemailer.createTransport({
   }
 });
 
-const sendlist = [];
+let sendlist = [];
 // empty array where we'll keep 
 //all our contacts
-const message_increment = 0;
+let message_increment = 0;
 //constiable to move to the next 
 //contact
 
 const trigger_sending = (env) => {
   //env passes our email and name to 
   //customize the message
+  console.log(env);
   const emailbody = template.generate(env.first).toString();
   //generates a string to send 
   //the personalized HTML
@@ -58,6 +62,7 @@ const trigger_sending = (env) => {
 
 const set_message_delays = () => {
   const message_job = schedule.scheduleJob('*/10 * * * * *', () => {
+    console.log(sendlist);
     trigger_sending(sendlist[message_increment]);
     if (message_increment < sendlist.length) {
       message_increment++;
@@ -71,23 +76,20 @@ const set_message_delays = () => {
   });
 }
 
-const getList = () => {
-  csv().fromFile(testfile) //or your production list
-    .on('json', (jsonObj) => {
-      sendlist.push(jsonObj);
-    })
-    .on('done', () => {
-      set_message_delays();
-    })
+const getList = async () => {
+  const jsonCsv = await csv().fromFile(prodfile)
+  console.log(jsonCsv);
+  sendlist.push(jsonCsv);
+  set_message_delays();
 };
 
 const startApp = () => {
-  transporter.verify((error, success) => {
+  transporter.verify(async (error, success) => {
     if (error) {
       console.log(error);
     } else {
       console.log('Server is ready to take our messages');
-      getList();
+      await getList();
       // trigger the whole app once the mail server is ready
     }
   });
