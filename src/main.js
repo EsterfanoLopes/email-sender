@@ -1,13 +1,11 @@
 const nodemailer = require('nodemailer');
 const template = require('./templates/template.js');
 const csv = require('csvtojson');
-const schedule = require('node-schedule');
-
 const path = require('path');
+const { dataParser } = require('./util/dataParser');
+
 const appDir = path.dirname(require.main.filename);
-
 const prodfile = `${appDir}/resources/list.csv`;
-
 const {
   userEmail,
   passwordEmail,
@@ -31,48 +29,35 @@ const transporter = nodemailer.createTransport({
   }
 });
 
-let sendlist = [];
-
-const trigger_sending = (env) => {
-  const emailbody = template.generate(env.first).toString();
-
-  transporter.sendMail({
-    from: 'E-mail sender <email@sender.com>',
-    to: env,
-    subject: 'Subjects of the e-mail',
-    text: '##Plaintext version of the message##',
-    html: emailbody,
-  }, (error, info) => {
-    if (error) {
-      return console.log(error);
-    }
-    console.log('Message sent: %s', info.messageId);
-  });
+const sendEmail = ({ email, data }) => {
+  if (email) {
+    transporter.sendMail({
+      from: 'E-mail sender <email@sender.com>',
+      to: email,
+      subject: 'Subjects of the e-mail',
+      text: '##Plaintext version of the message##',
+      html: template.generate(data).toString(),
+    }, (error, info) => {
+      if (error) {
+        return console.log(error);
+      }
+      console.log('Message sent: %s', info.messageId);
+    });
+  }
 };
 
-
-const set_message_delays = () => {
-  const message_job = schedule.scheduleJob('*/10 * * * * *', () => {
-    let message_increment = 0;
-
-    trigger_sending(sendlist[message_increment]);
-    if (message_increment < sendlist.length) {
-      message_increment++;
-    }
-    if (message_increment >= sendlist.length) {
-      message_job.cancel();
-    }
-  });
-}
+const triggerSending = (env) => {
+  const parsedData = dataParser(env);
+  parsedData.forEach(element => sendEmail(element));
+};
 
 const getList = async () => {
   try {
     const jsonCsv = await csv({
       noheader: true,
-      output: "csv"
-    }).fromFile(prodfile)
-    sendlist.push(jsonCsv);
-    set_message_delays();
+      output: "csv",
+    }).fromFile(prodfile);
+    await triggerSending(jsonCsv);
   } catch (err) {
     console.log(err);
   }
