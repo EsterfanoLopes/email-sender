@@ -1,5 +1,18 @@
 const { validate } = require('email-validator');
 
+const compare = (a, b, property) => {
+  const elementA = a.data[property];
+  const elementB = b.data[property];
+
+  let comparison = 0;
+  if (elementA > elementB) {
+    comparison = 1;
+  } else if (elementA < elementB) {
+    comparison = -1;
+  }
+  return comparison;
+};
+
 const buildParsedData = (line) => {
   if (validate(line[0])) {
     return {
@@ -19,10 +32,23 @@ const buildParsedData = (line) => {
   return false;
 };
 
+const rankData = (parsedData) => parsedData
+  .sort((a, b, property = 'consolidated') => {
+    if (a && b) {
+      return compare(a, b, property)
+    }
+  })
+  .reverse();
+
+
 module.exports = {
   dataParser: (allLines) => {
-    return allLines.map(line => {
-      return buildParsedData(line);
-    });
+    const allParsed = allLines.map(line => buildParsedData(line));
+    const rankedData = rankData(allParsed);
+
+    return {
+      parsedData: allParsed,
+      rankedData: rankedData.filter(item => item),
+    }
   }
 };

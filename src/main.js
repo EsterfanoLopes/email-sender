@@ -29,14 +29,13 @@ const transporter = nodemailer.createTransport({
   }
 });
 
-const sendEmail = ({ email, data }) => {
+const sendEmail = ({ email, data }, rankedData, order) => {
   if (email) {
     transporter.sendMail({
       from: 'E-mail sender <email@sender.com>',
       to: email,
       subject: 'Subjects of the e-mail',
-      text: '##Plaintext version of the message##',
-      html: template.generate(data).toString(),
+      html: template.generate(data, rankedData, order).toString(),
     }, (error, info) => {
       if (error) {
         return console.log(error);
@@ -47,8 +46,8 @@ const sendEmail = ({ email, data }) => {
 };
 
 const triggerSending = (env) => {
-  const parsedData = dataParser(env);
-  parsedData.forEach(element => sendEmail(element));
+  const { parsedData, rankedData } = dataParser(env);
+  parsedData.forEach((element, order) => sendEmail(element, rankedData, order));
 };
 
 const getList = async () => {
